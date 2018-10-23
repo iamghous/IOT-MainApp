@@ -1,0 +1,146 @@
+*{
+padding : 0;
+margin : 0;
+border : 0;
+}
+
+.headerH1{
+    color: white;
+text-align: center;
+    font-size: 3em;
+    
+}
+.headerH2{
+    
+    color : white;
+    font-size: 2.5em;
+    text-align: right;
+    margin-right: 160px;
+}
+body{
+background-attachment : fixed;
+background-size : 100% auto;
+background-color : black;
+}
+.blended_grid{
+display : block;
+width : 1000px;
+overflow :hidden;
+margin : 20px auto 0 auto;
+}
+.pageHeader{
+background-color : darkmagenta;
+float : left;
+clear : none;
+height : 140px;
+width : 1000px;
+}
+.pageSecond{
+background-color : darkmagenta;
+float : left;
+clear : none;
+height : auto;
+width : 1000px;
+}
+.pageThird{
+background-color : darkmagenta;
+float : left;
+clear : none;
+height : auto;
+width : 1000px;
+}
+.pageContainer{
+background-color : white;
+float : left;
+clear : none;
+height : 280px;
+width : 333.3px;
+}
+h1.appPage{
+    
+    display: block;
+    font-size: 2em;
+
+    -webkit-margin-after: 0.67em;
+    -webkit-margin-start: 0px;
+    -webkit-margin-end: 0px;
+    font-weight: bold;
+}
+.stripe{
+
+height : 40px;
+width : auto;
+}
+.pageButton {
+    background-color: #4CAF50;
+    border: none;
+    color: white;
+    padding: 16px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    
+    cursor: pointer;
+}
+
+.pageButton {
+    background-color: white; 
+    color: black; 
+    border: 2px solid #4CAF50;
+}
+
+.pageButton:hover {
+    background-color: #4CAF50;
+    color: white;
+}
+.pageSelect {
+    background-color: #4CAF50;
+    border: none;
+    color: white;
+    padding: 16px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+}
+.content{
+    overflow-x:auto;
+     overflow-y:auto;
+    
+}
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+th{
+     text-align: left;
+    padding: 8px;
+    background-color:darkgreen;
+   color:white;
+} 
+td {
+    text-align: left;
+    padding: 8px;
+}
+textarea {
+	
+	padding:10px;
+	width:333px;
+	height:270px;
+	outline:none;
+	resize:vertical;
+	
+	color:#666;
+	
+	
+	
+	text-shadow:1px 1px 2px #ddd;
+	font-family:arial,tahoma;
+	
+	font-weight:normal;
+}

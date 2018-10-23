@@ -1,0 +1,100 @@
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="css/stylesheet.css">
+<title>Page Title</title>
+<meta name="description" content="Write some words to describe your html page">
+    <script src="scripts/javascript.js"></script>
+</head>
+<body>
+    <script >
+        callAllMethods();
+        
+    </script>
+<div class="blended_grid">
+    
+<div class="pageHeader">
+    
+    <h1 class = "headerH1"> Mobile Development Assignment</h1>
+    <h2 class = "headerH2">By Noman Ghous</h2>
+</div>
+
+    
+<div class="pageSecond">
+    <div style="background:#ffcccc;"class="pageContainer" id ="pageSecondOne">
+        <div class = "stripe" style="background: darkred;">
+        <h1 class= "appPage"style="color: white; text-align: center;"> Servo Motor </h1>  
+          <div class="content" id = "getServoMotor"> 
+    <h3 style="color:darkgreen; text-align:center;">Move Servo Motor</h3>
+    <br>
+<form> 
+  <select  class ="pageSelect"id = "selectBox">
+  <option value="0">0</option>
+  <option value="90">90</option>
+  <option value="180">180</option>
+  </select> 
+        <button class ="pageButton"onclick="getDataMotor('MoveServoMotor')"> Move Motor </button>
+          </form>
+    <br>
+    <p style="color:darkred;" id = "AfterMotorMoved"></p>
+        </div> </div></div>
+    
+    
+   <div style="background:#ccccff;" class="pageContainer" id ="pageSecondTwo">
+       <div class = "stripe" style="background: darkblue;">
+       <h1 class= "appPage"style="color: white; text-align: center;"> Last Data </h1></div> 
+       <div class="content" id = "getLastRow">     </div> </div>
+    
+    
+    <div style="background:#ccfff1;" class="pageContainer" id ="pageSecondThree">
+        <div class = "stripe" style="background: #009970;">
+        <h1 class= "appPage"style="color: white; text-align: center;"> Update Data </h1>
+        </div> <div class="content" id = "UpdateData">    
+        <button style="margin:10px 0 0 80px;" class ="pageButton"onclick="callAllMethods()"> Refresh All Data </button>
+        <button style="margin:10px 0 10 80px;" class ="pageButton"onclick="scanData('Scan','getScanData')"> Scan Data </button>
+        <div class="content" id = "getScanData"> <table> <thead> <tr>
+      <th>Sensor Name </th>
+            <th>Sensor Value</th>
+    </tr> 
+  </thead> </table>  </div></div>
+        
+        </div>
+</div>
+    
+    
+   <div class="pageThird">
+    <div class="pageContainer" id ="pageThirdOne">  
+        <div class = "stripe" style="background: purple;">
+        <h1 class= "appPage"style="color: white; text-align: center;"> XML </h1></div>
+        <textarea style="background:#ffe6ff;" id ="getXml">
+
+</textarea>
+    </div>
+    
+   <div class="pageContainer" id ="pageThirdTwo">
+       <div class = "stripe" style="background: darkgreen;">
+        <h1 class= "appPage"style="color: white; text-align: center;"> JSON </h1>
+       </div>
+       <textarea style="background:#ccffcc;" id ="getJson">
+
+</textarea></div>
+    
+    <div style="background:#ffdab3;"class="pageContainer" id ="pageThirdThree">
+        <div class = "stripe" style="background: #e67300;">
+        <h1 class= "appPage"style="color: white; text-align: center;"> Structured Data </h1>
+        </div>
+        <div class="content" id = "getDatabase">   </div></div>
+    
+    </div>
+
+    
+
+    
+   
+    </div>  
+     
+
+
+</div>
+</body>
+</html>
