@@ -1,0 +1,81 @@
+import os
+import yaml
+from collections import defaultdict
+
+def find_duplicate_env_vars(deployment_path):
+    """
+    Checks a deployment file for duplicate environment variables.
+    Returns a list of duplicate variable names if found, empty list otherwise.
+    """
+    try:
+        with open(deployment_path, 'r') as f:
+            deployment = yaml.safe_load(f)
+
+        # Skip if not a deployment or doesn't have containers
+        if not deployment or 'kind' not in deployment or deployment['kind'] != 'Deployment':
+            return []
+
+        # Get containers from the deployment spec
+        try:
+            containers = deployment['spec']['template']['spec']['containers']
+        except KeyError:
+            return []
+
+        # Check each container for env variables
+        duplicates = []
+        for container in containers:
+            if 'env' not in container:
+                continue
+
+            # Count occurrences of each env variable name
+            env_vars = defaultdict(int)
+            for env in container['env']:
+                if 'name' in env:
+                    env_vars[env['name']] += 1
+
+            # Add variables that appear more than once
+            duplicates.extend([name for name, count in env_vars.items() if count > 1])
+
+        return duplicates
+
+    except yaml.YAMLError as e:
+        print(f"Error parsing YAML in {deployment_path}: {e}")
+        return []
+    except Exception as e:
+        print(f"Error processing {deployment_path}: {e}")
+        return []
+
+def scan_kustomize_deployments(root_dir, output_file):
+    """
+    Scans all deployment files in the Kustomize application directory
+    and writes findings to an output file.
+    """
+    with open(output_file, 'w') as out:
+        out.write("Duplicate Environment Variables Report\n")
+        out.write("=====================================\n\n")
+
+        # Walk through all directories
+        for dirpath, _, filenames in os.walk(root_dir):
+            for filename in filenames:
+                if filename.endswith(('.yaml', '.yml')):
+                    filepath = os.path.join(dirpath, filename)
+                    
+                    # Check for duplicates in this file
+                    duplicates = find_duplicate_env_vars(filepath)
+                    
+                    if duplicates:
+                        relative_path = os.path.relpath(filepath, root_dir)
+                        out.write(f"File: {relative_path}\n")
+                        out.write("Duplicate variables:\n")
+                        for var in duplicates:
+                            out.write(f"  - {var}\n")
+                        out.write("\n")
+
+if __name__ == "__main__":
+    # Directory containing your Kustomize application
+    kustomize_dir = "./your-kustomize-app"
+    output_file = "duplicate_env_vars_report.txt"
+
+    print(f"Scanning for duplicate environment variables in {kustomize_dir}...")
+    scan_kustomize_deployments(kustomize_dir, output_file)
+    print(f"Scan complete. Results written to {output_file}")
