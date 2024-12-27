@@ -1,99 +1,65 @@
 import os
-import yaml
-from collections import defaultdict
+import requests
+import re
 
-def find_duplicate_env_vars(deployment_path):
+KUBE_TOKEN_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+KUBE_API_URL = f"https://{os.getenv('KUBERNETES_SERVICE_HOST')}:{os.getenv('KUBERNETES_SERVICE_PORT')}"
+NAMESPACE = "default"
+
+# Load the Kubernetes API token
+def get_kube_token():
+    with open(KUBE_TOKEN_PATH, "r") as token_file:
+        return token_file.read().strip()
+
+# Fetch pods in the namespace
+def get_pods(namespace, token):
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json"
+    }
+    url = f"{KUBE_API_URL}/api/v1/namespaces/{namespace}/pods"
+    response = requests.get(url, headers=headers, verify=False)
+    response.raise_for_status()
+    return response.json()
+
+# Extract environment variables from pods
+def extract_env_vars(pods):
+    pod_env_vars = {}
+    for pod in pods["items"]:
+        pod_name = pod["metadata"]["name"]
+        pod_env_vars[pod_name] = []
+        for container in pod["spec"]["containers"]:
+            env_vars = container.get("env", [])
+            for env in env_vars:
+                pod_env_vars[pod_name].append(env["name"])
+    return pod_env_vars
+
+# Analyze .NET application logs for environment variable usage
+def analyze_dotnet_logs(logs, env_vars):
+    used_vars = set()
+    for var in env_vars:
+        pattern = re.compile(rf'\b{var}\b', re.IGNORECASE)
+        if pattern.search(logs):
+            used_vars.add(var)
+    unused_vars = set(env_vars) - used_vars
+    return list(unused_vars)
+
+def main():
+    token = get_kube_token()
+    pods = get_pods(NAMESPACE, token)
+    pod_env_vars = extract_env_vars(pods)
+
+    # Simulated logs for the .NET application (replace with actual logs)
+    dotnet_logs = """
+    Loading configuration from DATABASE_URL.
+    Accessing API_KEY for authentication.
+    DEBUG_MODE is set to false.
     """
-    Checks a deployment file for duplicate environment variables.
-    Returns a list of duplicate variable names if found, empty list otherwise.
-    """
-    try:
-        with open(deployment_path, 'r') as f:
-            deployment = yaml.safe_load(f)
 
-        # Skip if not a deployment
-        if not deployment or 'kind' not in deployment or deployment['kind'] != 'Deployment':
-            return []
-
-        # Get containers from the deployment spec
-        try:
-            containers = deployment['spec']['template']['spec']['containers']
-        except KeyError:
-            return []
-
-        # Check each container for env variables
-        duplicates = []
-        for container in containers:
-            if 'env' not in container:
-                continue
-
-            # Count occurrences of each env variable name
-            env_vars = defaultdict(int)
-            for env in container['env']:
-                if 'name' in env:
-                    env_vars[env['name']] += 1
-
-            # Add variables that appear more than once
-            container_duplicates = [name for name, count in env_vars.items() if count > 1]
-            if container_duplicates:
-                # Include container name if available
-                container_name = container.get('name', 'unnamed-container')
-                duplicates.extend([f"{name} (in container {container_name})" for name in container_duplicates])
-
-        return duplicates
-
-    except yaml.YAMLError as e:
-        print(f"Error parsing YAML in {deployment_path}: {e}")
-        return []
-    except Exception as e:
-        print(f"Error processing {deployment_path}: {e}")
-        return []
-
-def scan_deployments(base_dir, output_file):
-    """
-    Scans all DeploymentConfig.yaml/yml files under the base directory
-    and writes findings to an output file.
-    """
-    with open(output_file, 'w') as out:
-        out.write("Duplicate Environment Variables Report\n")
-        out.write("=====================================\n\n")
-        
-        # Track total files processed and files with duplicates
-        total_files = 0
-        files_with_duplicates = 0
-
-        # Walk through all directories under base
-        for dirpath, _, filenames in os.walk(base_dir):
-            for filename in filenames:
-                # Only check files named DeploymentConfig.yaml or DeploymentConfig.yml
-                if filename.lower() in ['deploymentconfig.yaml', 'deploymentconfig.yml']:
-                    total_files += 1
-                    filepath = os.path.join(dirpath, filename)
-                    
-                    # Check for duplicates in this file
-                    duplicates = find_duplicate_env_vars(filepath)
-                    
-                    if duplicates:
-                        files_with_duplicates += 1
-                        relative_path = os.path.relpath(filepath, base_dir)
-                        out.write(f"File: {relative_path}\n")
-                        out.write("Duplicate variables:\n")
-                        for var in duplicates:
-                            out.write(f"  - {var}\n")
-                        out.write("\n")
-
-        # Write summary at the end
-        out.write("\nSummary\n")
-        out.write("=======\n")
-        out.write(f"Total deployment files processed: {total_files}\n")
-        out.write(f"Files with duplicate variables: {files_with_duplicates}\n")
+    for pod_name, env_vars in pod_env_vars.items():
+        unused_vars = analyze_dotnet_logs(dotnet_logs, env_vars)
+        if unused_vars:
+            print(f"Pod: {pod_name}, Unused Environment Variables: {unused_vars}")
 
 if __name__ == "__main__":
-    # Directory containing your base folder
-    base_dir = "./base"  # Update this to your actual base directory path
-    output_file = "duplicate_env_vars_report.txt"
-
-    print(f"Scanning for duplicate environment variables in {base_dir}...")
-    scan_deployments(base_dir, output_file)
-    print(f"Scan complete. Results written to {output_file}")
-    print("Note: Check the summary at the end of the report for an overview.")
+    main()
