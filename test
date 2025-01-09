@@ -1,3 +1,9 @@
+<!-- Project structure:
+your-project/
+  ├── pom.xml
+  └── settings.xml  (Place in same directory as pom.xml)
+-->
+
 <!-- pom.xml -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -8,13 +14,33 @@
     <artifactId>nexus-azure-transfer</artifactId>
     <version>1.0.0</version>
 
-    <!-- Nexus Repository -->
+    <!-- Restrict to only use internal repositories -->
     <repositories>
         <repository>
             <id>nexus</id>
             <url>http://your-nexus-url/repository/maven-public/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
         </repository>
     </repositories>
+
+    <!-- Disable Maven Central -->
+    <pluginRepositories>
+        <pluginRepository>
+            <id>nexus</id>
+            <url>http://your-nexus-url/repository/maven-public/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </pluginRepository>
+    </pluginRepositories>
 
     <!-- Azure DevOps Artifact Feed -->
     <distributionManagement>
@@ -34,11 +60,20 @@
     </dependencies>
 </project>
 
-<!-- settings.xml (Place this in ~/.m2/settings.xml) -->
+<!-- settings.xml (Place in same directory as pom.xml) -->
 <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
     
+    <!-- Disable Maven Central -->
+    <mirrors>
+        <mirror>
+            <id>nexus</id>
+            <mirrorOf>*</mirrorOf>
+            <url>http://your-nexus-url/repository/maven-public/</url>
+        </mirror>
+    </mirrors>
+
     <servers>
         <!-- Nexus Server Credentials -->
         <server>
@@ -55,14 +90,5 @@
                 <sshPassphrase>your-passphrase-if-any</sshPassphrase>
             </configuration>
         </server>
-
-        <!-- Alternatively, for Personal Access Token (PAT) -->
-        <!--
-        <server>
-            <id>azure-artifacts</id>
-            <username>anything</username>
-            <password>your-azure-devops-pat</password>
-        </server>
-        -->
     </servers>
 </settings>
