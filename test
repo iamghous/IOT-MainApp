@@ -1,65 +1,68 @@
-import os
-import requests
-import re
+<!-- pom.xml -->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-KUBE_TOKEN_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/token"
-KUBE_API_URL = f"https://{os.getenv('KUBERNETES_SERVICE_HOST')}:{os.getenv('KUBERNETES_SERVICE_PORT')}"
-NAMESPACE = "default"
+    <groupId>com.example</groupId>
+    <artifactId>nexus-azure-transfer</artifactId>
+    <version>1.0.0</version>
 
-# Load the Kubernetes API token
-def get_kube_token():
-    with open(KUBE_TOKEN_PATH, "r") as token_file:
-        return token_file.read().strip()
+    <!-- Nexus Repository -->
+    <repositories>
+        <repository>
+            <id>nexus</id>
+            <url>http://your-nexus-url/repository/maven-public/</url>
+        </repository>
+    </repositories>
 
-# Fetch pods in the namespace
-def get_pods(namespace, token):
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Accept": "application/json"
-    }
-    url = f"{KUBE_API_URL}/api/v1/namespaces/{namespace}/pods"
-    response = requests.get(url, headers=headers, verify=False)
-    response.raise_for_status()
-    return response.json()
+    <!-- Azure DevOps Artifact Feed -->
+    <distributionManagement>
+        <repository>
+            <id>azure-artifacts</id>
+            <url>https://pkgs.dev.azure.com/YOUR_ORG/YOUR_PROJECT/_packaging/nexus/maven/v1</url>
+        </repository>
+    </distributionManagement>
 
-# Extract environment variables from pods
-def extract_env_vars(pods):
-    pod_env_vars = {}
-    for pod in pods["items"]:
-        pod_name = pod["metadata"]["name"]
-        pod_env_vars[pod_name] = []
-        for container in pod["spec"]["containers"]:
-            env_vars = container.get("env", [])
-            for env in env_vars:
-                pod_env_vars[pod_name].append(env["name"])
-    return pod_env_vars
+    <dependencies>
+        <!-- Add your dependency that you want to download from Nexus -->
+        <dependency>
+            <groupId>com.example</groupId>
+            <artifactId>your-package</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+    </dependencies>
+</project>
 
-# Analyze .NET application logs for environment variable usage
-def analyze_dotnet_logs(logs, env_vars):
-    used_vars = set()
-    for var in env_vars:
-        pattern = re.compile(rf'\b{var}\b', re.IGNORECASE)
-        if pattern.search(logs):
-            used_vars.add(var)
-    unused_vars = set(env_vars) - used_vars
-    return list(unused_vars)
+<!-- settings.xml (Place this in ~/.m2/settings.xml) -->
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+    
+    <servers>
+        <!-- Nexus Server Credentials -->
+        <server>
+            <id>nexus</id>
+            <username>your-nexus-username</username>
+            <password>your-nexus-password</password>
+        </server>
 
-def main():
-    token = get_kube_token()
-    pods = get_pods(NAMESPACE, token)
-    pod_env_vars = extract_env_vars(pods)
+        <!-- Azure DevOps Credentials (SSH) -->
+        <server>
+            <id>azure-artifacts</id>
+            <configuration>
+                <sshPrivateKey>/path/to/your/private/key</sshPrivateKey>
+                <sshPassphrase>your-passphrase-if-any</sshPassphrase>
+            </configuration>
+        </server>
 
-    # Simulated logs for the .NET application (replace with actual logs)
-    dotnet_logs = """
-    Loading configuration from DATABASE_URL.
-    Accessing API_KEY for authentication.
-    DEBUG_MODE is set to false.
-    """
-
-    for pod_name, env_vars in pod_env_vars.items():
-        unused_vars = analyze_dotnet_logs(dotnet_logs, env_vars)
-        if unused_vars:
-            print(f"Pod: {pod_name}, Unused Environment Variables: {unused_vars}")
-
-if __name__ == "__main__":
-    main()
+        <!-- Alternatively, for Personal Access Token (PAT) -->
+        <!--
+        <server>
+            <id>azure-artifacts</id>
+            <username>anything</username>
+            <password>your-azure-devops-pat</password>
+        </server>
+        -->
+    </servers>
+</settings>
