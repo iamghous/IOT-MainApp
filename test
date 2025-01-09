@@ -1,10 +1,4 @@
-<!-- Project structure:
-your-project/
-  ├── pom.xml
-  └── settings.xml  (Place in same directory as pom.xml)
--->
-
-<!-- pom.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -14,81 +8,54 @@ your-project/
     <artifactId>nexus-azure-transfer</artifactId>
     <version>1.0.0</version>
 
-    <!-- Restrict to only use internal repositories -->
+    <!-- Combined repositories section -->
     <repositories>
         <repository>
-            <id>nexus</id>
-            <url>http://your-nexus-url/repository/maven-public/</url>
+            <id>nexus-gradle</id>
+            <url>https://nexus-rm.waf.group.intra/repository/maven-gradle/</url>
             <releases>
                 <enabled>true</enabled>
+                <updatePolicy>always</updatePolicy>
             </releases>
             <snapshots>
                 <enabled>true</enabled>
+                <updatePolicy>always</updatePolicy>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>nexus-releases</id>
+            <url>https://nexus-rm.waf.group.intra/repository/maven-releases/</url>
+            <releases>
+                <enabled>true</enabled>
+                <updatePolicy>always</updatePolicy>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
             </snapshots>
         </repository>
     </repositories>
 
-    <!-- Disable Maven Central -->
+    <!-- Plugin repositories -->
     <pluginRepositories>
         <pluginRepository>
-            <id>nexus</id>
-            <url>http://your-nexus-url/repository/maven-public/</url>
+            <id>nexus-gradle</id>
+            <url>https://nexus-rm.waf.group.intra/repository/maven-gradle/</url>
             <releases>
                 <enabled>true</enabled>
+                <updatePolicy>always</updatePolicy>
             </releases>
             <snapshots>
                 <enabled>true</enabled>
+                <updatePolicy>always</updatePolicy>
             </snapshots>
         </pluginRepository>
     </pluginRepositories>
 
-    <!-- Azure DevOps Artifact Feed -->
-    <distributionManagement>
-        <repository>
-            <id>azure-artifacts</id>
-            <url>https://pkgs.dev.azure.com/YOUR_ORG/YOUR_PROJECT/_packaging/nexus/maven/v1</url>
-        </repository>
-    </distributionManagement>
-
     <dependencies>
-        <!-- Add your dependency that you want to download from Nexus -->
         <dependency>
-            <groupId>com.example</groupId>
-            <artifactId>your-package</artifactId>
-            <version>1.0.0</version>
+            <groupId>com.example.nexus</groupId>
+            <artifactId>smartcontract-sdk-android-lib</artifactId>
+            <version>2024.0.1</version>
         </dependency>
     </dependencies>
 </project>
-
-<!-- settings.xml (Place in same directory as pom.xml) -->
-<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
-          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
-    
-    <!-- Disable Maven Central -->
-    <mirrors>
-        <mirror>
-            <id>nexus</id>
-            <mirrorOf>*</mirrorOf>
-            <url>http://your-nexus-url/repository/maven-public/</url>
-        </mirror>
-    </mirrors>
-
-    <servers>
-        <!-- Nexus Server Credentials -->
-        <server>
-            <id>nexus</id>
-            <username>your-nexus-username</username>
-            <password>your-nexus-password</password>
-        </server>
-
-        <!-- Azure DevOps Credentials (SSH) -->
-        <server>
-            <id>azure-artifacts</id>
-            <configuration>
-                <sshPrivateKey>/path/to/your/private/key</sshPrivateKey>
-                <sshPassphrase>your-passphrase-if-any</sshPassphrase>
-            </configuration>
-        </server>
-    </servers>
-</settings>
