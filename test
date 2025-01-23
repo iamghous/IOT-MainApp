@@ -1,61 +1,87 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+import requests
+import base64
+import sys
+from urllib.parse import urljoin
+
+def update_nexus_pom(
+    nexus_url,
+    repository,
+    group_id,
+    artifact_id,
+    version,
+    username,
+    password,
+    new_pom_content
+):
+    """
+    Update a POM file in Nexus repository using REST API
+    """
+    # Convert group ID to path format
+    group_path = group_id.replace('.', '/')
+    
+    # Construct the component path
+    pom_path = f"{group_path}/{artifact_id}/{version}/{artifact_id}-{version}.pom"
+    
+    # Full URL for the POM file
+    url = urljoin(nexus_url, f"repository/{repository}/{pom_path}")
+    
+    # Create basic auth header
+    auth_str = base64.b64encode(f"{username}:{password}".encode()).decode()
+    headers = {
+        'Authorization': f'Basic {auth_str}',
+        'Content-Type': 'application/xml'
+    }
+    
+    try:
+        # First verify the POM exists
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        
+        # Update the POM
+        response = requests.put(url, headers=headers, data=new_pom_content)
+        response.raise_for_status()
+        
+        print(f"Successfully updated POM file at {url}")
+        return True
+        
+    except requests.exceptions.RequestException as e:
+        print(f"Error updating POM: {str(e)}")
+        return False
+
+# Example usage
+if __name__ == "__main__":
+    # Configuration
+    config = {
+        'nexus_url': 'http://your-nexus-server:8081/nexus',
+        'repository': 'maven-releases',
+        'group_id': 'com.example',
+        'artifact_id': 'my-project',
+        'version': '1.0.0',
+        'username': 'your-username',
+        'password': 'your-password',
+    }
+    
+    # New POM content
+    new_pom = """<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
     <modelVersion>4.0.0</modelVersion>
-
     <groupId>com.example</groupId>
-    <artifactId>nexus-azure-transfer</artifactId>
+    <artifactId>my-project</artifactId>
     <version>1.0.0</version>
-
-    <!-- Combined repositories section -->
-    <repositories>
-        <repository>
-            <id>nexus-gradle</id>
-            <url>https://nexus-rm.waf.group.intra/repository/maven-gradle/</url>
-            <releases>
-                <enabled>true</enabled>
-                <updatePolicy>always</updatePolicy>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-                <updatePolicy>always</updatePolicy>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>nexus-releases</id>
-            <url>https://nexus-rm.waf.group.intra/repository/maven-releases/</url>
-            <releases>
-                <enabled>true</enabled>
-                <updatePolicy>always</updatePolicy>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
-
-    <!-- Plugin repositories -->
-    <pluginRepositories>
-        <pluginRepository>
-            <id>nexus-gradle</id>
-            <url>https://nexus-rm.waf.group.intra/repository/maven-gradle/</url>
-            <releases>
-                <enabled>true</enabled>
-                <updatePolicy>always</updatePolicy>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-                <updatePolicy>always</updatePolicy>
-            </snapshots>
-        </pluginRepository>
-    </pluginRepositories>
-
-    <dependencies>
-        <dependency>
-            <groupId>com.example.nexus</groupId>
-            <artifactId>smartcontract-sdk-android-lib</artifactId>
-            <version>2024.0.1</version>
-        </dependency>
-    </dependencies>
+    <!-- Your updated POM content here -->
 </project>
+"""
+    
+    # Update the POM
+    success = update_nexus_pom(
+        config['nexus_url'],
+        config['repository'],
+        config['group_id'],
+        config['artifact_id'],
+        config['version'],
+        config['username'],
+        config['password'],
+        new_pom
+    )
+    
+    sys.exit(0 if success else 1)
