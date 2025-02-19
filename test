@@ -1,50 +1,44 @@
 import requests
+import json
 
-def get_vault_value(vault_url, token, secret_path, secret_key):
+def upload_manifest(url, public_key, private_key, file_path="manifest.json"):
     """
-    Retrieves a value from HashiCorp Vault using HTTP requests.
-
+    Uploads a manifest JSON file to MongoDB Ops Manager via an HTTP PUT request.
+    
     Parameters:
-        vault_url (str): The URL of the Vault server.
-        token (str): The Vault token for authentication.
-        secret_path (str): The path to the secret in Vault (e.g., 'secret/data/mysecret').
-        secret_key (str): The key within the secret to retrieve.
+    - url (str): The API endpoint for uploading the manifest.
+    - public_key (str): The public API key for authentication.
+    - private_key (str): The private API key for authentication.
+    - file_path (str): The path to the manifest JSON file (default is 'manifest.json').
 
     Returns:
-        str: The value of the secret key or None if not found.
+    - dict: JSON response from the server if successful.
+    - str: Error message if the request fails.
     """
-    headers = {
-        'X-Vault-Token': token
-    }
-    
-    # Construct the full URL for the secret
-    url = f"{vault_url}/v1/{secret_path}"
-    
     try:
-        response = requests.get(url, headers=headers)
+        # Read the JSON file
+        with open(file_path, "r") as file:
+            manifest_data = file.read()
         
-        # Check if the request was successful
+        # Headers
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json"
+        }
+
+        # Authentication (Basic Auth)
+        auth = (public_key, private_key)
+
+        # Send HTTP PUT request
+        response = requests.put(url, headers=headers, data=manifest_data, auth=auth)
+
+        # Check response status
         if response.status_code == 200:
-            # Parse the JSON response
-            data = response.json()
-            
-            # Extract the secret value
-            value = data.get('data', {}).get('data', {}).get(secret_key)
-            return value
-        
+            return response.json()  # Return JSON response if successful
         else:
-            print(f"Failed to retrieve secret: {response.status_code} - {response.text}")
-            return None
-    
-    except Exception as e:
-        print(f"Error: {e}")
-        return None
+            return f"Error: {response.status_code} - {response.text}"
 
-# Example usage:
-vault_url = "http://127.0.0.1:8200"  # Replace with your Vault URL
-token = "your-vault-token"           # Replace with your Vault token
-secret_path = "secret/data/mysecret" # Path to your secret in Vault
-secret_key = "mykey"                 # The key you want to retrieve
-
-value = get_vault_value(vault_url, token, secret_path, secret_key)
-print(f"Vault Value: {value}")
+    except FileNotFoundError:
+        return "Error: Manifest file not found. Please check the file path."
+    except requests.RequestException as e:
+        return f"Request failed: {e}"
