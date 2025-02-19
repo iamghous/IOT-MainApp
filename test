@@ -1,26 +1,50 @@
-import yaml
+import requests
 
-def update_configmap(file_path, key, new_value):
+def get_vault_value(vault_url, token, secret_path, secret_key):
     """
-    Updates a value in a Kubernetes ConfigMap YAML file.
+    Retrieves a value from HashiCorp Vault using HTTP requests.
 
-    :param file_path: Path to the ConfigMap YAML file
-    :param key: The key in the data section to update
-    :param new_value: The new value to set
+    Parameters:
+        vault_url (str): The URL of the Vault server.
+        token (str): The Vault token for authentication.
+        secret_path (str): The path to the secret in Vault (e.g., 'secret/data/mysecret').
+        secret_key (str): The key within the secret to retrieve.
+
+    Returns:
+        str: The value of the secret key or None if not found.
     """
-    with open(file_path, 'r') as file:
-        configmap = yaml.safe_load(file)
-
-    # Ensure it's a ConfigMap and has the necessary structure
-    if configmap.get("kind") == "ConfigMap" and "data" in configmap:
-        configmap["data"][key] = new_value
-    else:
-        raise ValueError("Invalid ConfigMap format")
-
-    with open(file_path, 'w') as file:
-        yaml.safe_dump(configmap, file, default_flow_style=False)
-
-    print(f"Updated '{key}' in {file_path}")
+    headers = {
+        'X-Vault-Token': token
+    }
+    
+    # Construct the full URL for the secret
+    url = f"{vault_url}/v1/{secret_path}"
+    
+    try:
+        response = requests.get(url, headers=headers)
+        
+        # Check if the request was successful
+        if response.status_code == 200:
+            # Parse the JSON response
+            data = response.json()
+            
+            # Extract the secret value
+            value = data.get('data', {}).get('data', {}).get(secret_key)
+            return value
+        
+        else:
+            print(f"Failed to retrieve secret: {response.status_code} - {response.text}")
+            return None
+    
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
 
 # Example usage:
-# update_configmap("configmap.yaml", "MY_KEY", "new_value")
+vault_url = "http://127.0.0.1:8200"  # Replace with your Vault URL
+token = "your-vault-token"           # Replace with your Vault token
+secret_path = "secret/data/mysecret" # Path to your secret in Vault
+secret_key = "mykey"                 # The key you want to retrieve
+
+value = get_vault_value(vault_url, token, secret_path, secret_key)
+print(f"Vault Value: {value}")
