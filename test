@@ -42,3 +42,20 @@ def upload_manifest(url, public_key, private_key, file_path="manifest.json"):
         return "Error: Manifest file not found. Please check the file path."
     except requests.RequestException as e:
         return f"Request failed: {e}"
+
+
+
+import subprocess
+
+# Example oc command: Getting all pods in a namespace
+namespace = "default"
+command = ["oc", "get", "pods", "-n", namespace]
+
+try:
+    result = subprocess.run(command, capture_output=True, text=True, check=True)
+    print("Command Output:")
+    print(result.stdout)
+except subprocess.CalledProcessError as e:
+    print("Error Occurred:")
+    print(e.stderr)
+
