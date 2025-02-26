@@ -1,61 +1,125 @@
-import requests
-import json
+Here is a well-structured and clear documentation based on your notes regarding MongoDB metrics and alerts:
 
-def upload_manifest(url, public_key, private_key, file_path="manifest.json"):
-    """
-    Uploads a manifest JSON file to MongoDB Ops Manager via an HTTP PUT request.
-    
-    Parameters:
-    - url (str): The API endpoint for uploading the manifest.
-    - public_key (str): The public API key for authentication.
-    - private_key (str): The private API key for authentication.
-    - file_path (str): The path to the manifest JSON file (default is 'manifest.json').
+MongoDB Monitoring: Key Metrics and Alerts
 
-    Returns:
-    - dict: JSON response from the server if successful.
-    - str: Error message if the request fails.
-    """
-    try:
-        # Read the JSON file
-        with open(file_path, "r") as file:
-            manifest_data = file.read()
-        
-        # Headers
-        headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/json"
-        }
+Monitoring MongoDB is essential to ensure optimal database performance, prevent downtime, and detect inefficiencies. This document outlines the key metrics that need to be monitored, why they are important, and the appropriate alerts to set.
 
-        # Authentication (Basic Auth)
-        auth = (public_key, private_key)
+1. Connections
+	•	Each open connection to MongoDB consumes approximately 1 MB of memory.
+	•	By default, 20 connections are open per replica set.
+	•	It is important to ensure that the number of connections remains at an optimal level to avoid unnecessary memory usage.
+	•	Alert Recommendation: Set alerts based on the percentage of connections in use.
 
-        # Send HTTP PUT request
-        response = requests.put(url, headers=headers, data=manifest_data, auth=auth)
+2. Document Metrics
 
-        # Check response status
-        if response.status_code == 200:
-            return response.json()  # Return JSON response if successful
-        else:
-            return f"Error: {response.status_code} - {response.text}"
+These metrics track how data is being processed in the database:
+	•	Returned Documents: Number of documents retrieved by queries.
+	•	Deleted Documents: Number of documents removed.
 
-    except FileNotFoundError:
-        return "Error: Manifest file not found. Please check the file path."
-    except requests.RequestException as e:
-        return f"Request failed: {e}"
+Monitoring these helps in understanding query performance and detecting unusual activity.
 
+3. Network Metrics
+	•	Tracks the amount of network traffic MongoDB is handling (measured in bytes).
+	•	Helps identify high traffic loads that could impact performance.
+	•	Alert Recommendation: Set alerts on high network traffic to detect unusual spikes.
 
+4. OPCounters (Operation Counters)
+	•	Similar to Document Metrics but tracks all operations (insert, update, delete).
+	•	Important for understanding database activity trends.
 
-import subprocess
+5. Operation Execution Time
+	•	Measures how quickly MongoDB processes read, write, and command operations.
+	•	If execution time is too high, queries may be inefficient (e.g., missing indexes).
+	•	Recommended thresholds:
+	•	Reads: Alert if execution time exceeds 100ms.
+	•	Writes: Normal execution time is below 180ms.
+	•	Alert Recommendation: Set alerts for slow read times (above 100ms).
 
-# Example oc command: Getting all pods in a namespace
-namespace = "default"
-command = ["oc", "get", "pods", "-n", namespace]
+6. Page Faults
+	•	Indicates whether MongoDB has enough memory.
+	•	A flat line in page faults suggests good memory availability.
+	•	If page faults exceed 20% consistently, it indicates that MongoDB does not have enough RAM and is relying on disk, which significantly slows down performance.
+	•	Alert Recommendation: If page faults exceed 20% consistently, increase memory allocation.
 
-try:
-    result = subprocess.run(command, capture_output=True, text=True, check=True)
-    print("Command Output:")
-    print(result.stdout)
-except subprocess.CalledProcessError as e:
-    print("Error Occurred:")
-    print(e.stderr)
+7. Query Execution & Indexing
+	•	If query execution time increases, the database might be missing indexes.
+	•	Unindexed queries scan entire collections instead of using an index, causing slow performance.
+	•	Scanned Indexes vs. Used Indexes:
+	•	Scanned indexes indicate inefficiency.
+	•	Queries without indexes rely on disk, leading to slower performance.
+	•	Alert Recommendation: Set alerts when query execution exceeds 1000 queries per second.
 
+8. Profiler
+	•	Tracks execution plans for slow queries.
+	•	Helps optimize performance by identifying inefficient queries.
+
+9. Performance Advisor
+	•	Analyzes slow queries over the last 7 days.
+	•	Suggests which indexes should be created to improve performance.
+
+10. Queues
+	•	Shows the number of operations waiting to be executed.
+	•	Alert Recommendation:
+	•	If there are 100+ queries waiting for over 2 minutes, trigger an alert.
+
+11. Scan and Order
+	•	Occurs when queries require sorting instead of using indexes.
+	•	Can significantly increase CPU usage.
+	•	Alert Recommendation: If scan and order queries exceed 20 per second for a minute, trigger an alert.
+
+12. Tickets (MongoDB 7+)
+	•	Tickets are responsible for database operations (reads/writes).
+	•	If too many tickets are occupied, performance degrades.
+	•	Alert Recommendation:
+	•	If 50 tickets are in use for over 1 minute, trigger a warning.
+	•	If 100 tickets are in use consistently, trigger an alarm.
+	•	Potential Causes:
+	•	Slow disk performance
+	•	Bad schema design
+	•	Long-running transactions
+
+13. Memory & Cache
+	•	Dirty Cache: The portion of the cache waiting to be written to disk.
+	•	Normal dirty cache usage is around 5%.
+	•	Alert Recommendation:
+	•	If dirty cache exceeds 5%, it’s a concern.
+	•	If dirty cache exceeds 20% for more than 1 minute, send an alert.
+
+14. Disk Metrics
+	•	Replication Lag: If secondary instances fall behind primary, performance issues may arise.
+	•	Primary Failover: If the primary node changes more than once per day, it could indicate network instability.
+	•	Alert Recommendation:
+	•	If replication lag is above 20 seconds for 1 minute, trigger an alarm.
+	•	If primary node election happens frequently, trigger an alert.
+
+15. CPU & System Performance
+
+Normalized Process CPU
+	•	MongoDB CPU usage should align with system CPU usage.
+	•	Alert Recommendation: If MongoDB CPU usage exceeds 15% for more than 1 minute, send an alert.
+
+Normalized System CPU (I/O Wait)
+	•	If I/O wait exceeds 15% consistently, there could be a disk problem or high latency.
+	•	If indexes are not used, I/O operations increase, impacting performance.
+	•	Alert Recommendation: If I/O wait stays above 15% for more than 1 minute, send an alert.
+
+16. System Disk Usage
+	•	If disk space is nearly full, MongoDB may fail.
+	•	Alert Recommendation:
+	•	Set alerts for disk exhaustion.
+	•	Monitor I/O operations and latency.
+	•	If latency exceeds 100ms for 1 minute, trigger an alert.
+
+17. Customizing MongoDB Dashboard
+	•	The MongoDB dashboard can be customized to:
+	•	Track critical metrics.
+	•	Set alerts based on thresholds.
+	•	Identify performance bottlenecks.
+
+Conclusion
+
+By monitoring these key MongoDB metrics and setting appropriate alerts, you can ensure high database performance, prevent downtime, and optimize queries.
+
+This structured documentation provides a clear and efficient way to track MongoDB performance and respond to potential issues before they escalate.
+
+This version of your notes is now structured, clear, and easy to follow. Let me know if you need any modifications!
