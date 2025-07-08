@@ -1,11 +1,10 @@
 import yaml
-from collections import OrderedDict
 import sys
 import os
 
 def sort_yaml_dict(obj):
     if isinstance(obj, dict):
-        return OrderedDict(sorted((k, sort_yaml_dict(v)) for k, v in obj.items()))
+        return {k: sort_yaml_dict(v) for k, v in sorted(obj.items())}
     elif isinstance(obj, list):
         return [sort_yaml_dict(item) for item in obj]
     else:
@@ -18,7 +17,7 @@ def sort_yaml_file(input_path, output_path):
     sorted_data = sort_yaml_dict(data)
 
     with open(output_path, 'w') as f:
-        yaml.dump(sorted_data, f, sort_keys=False)
+        yaml.dump(sorted_data, f, sort_keys=False, default_flow_style=False)
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
@@ -27,4 +26,4 @@ if __name__ == "__main__":
         input_file = sys.argv[1]
         output_file = sys.argv[2]
         sort_yaml_file(input_file, output_file)
-        print(f"Sorted YAML written to {output_file}")
+        print(f"✅ Sorted YAML written to {output_file}")
