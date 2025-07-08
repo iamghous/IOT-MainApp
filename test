@@ -1,29 +1,31 @@
 import yaml
 import sys
-import os
 
-def sort_yaml_dict(obj):
+def sort_dict_recursively(obj):
     if isinstance(obj, dict):
-        return {k: sort_yaml_dict(v) for k, v in sorted(obj.items())}
+        return dict(sorted((k, sort_dict_recursively(v)) for k, v in obj.items()))
     elif isinstance(obj, list):
-        return [sort_yaml_dict(item) for item in obj]
+        return [sort_dict_recursively(i) for i in obj]
     else:
         return obj
 
-def sort_yaml_file(input_path, output_path):
-    with open(input_path, 'r') as f:
-        data = yaml.safe_load(f)
+def load_clean_yaml(filepath):
+    with open(filepath, 'r') as f:
+        return yaml.safe_load(f)
 
-    sorted_data = sort_yaml_dict(data)
+def dump_clean_yaml(data, filepath):
+    with open(filepath, 'w') as f:
+        yaml.dump(data, f, sort_keys=False, default_flow_style=False)
 
-    with open(output_path, 'w') as f:
-        yaml.dump(sorted_data, f, sort_keys=False, default_flow_style=False)
+def main(input_file, output_file):
+    raw = load_clean_yaml(input_file)
+    sorted_yaml = sort_dict_recursively(raw)
+    dump_clean_yaml(sorted_yaml, output_file)
+    print(f"✅ Cleaned and sorted YAML written to: {output_file}")
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        print("Usage: python sort_yaml.py <input_file.yaml> <output_file.yaml>")
-    else:
-        input_file = sys.argv[1]
-        output_file = sys.argv[2]
-        sort_yaml_file(input_file, output_file)
-        print(f"✅ Sorted YAML written to {output_file}")
+        print("Usage: python sort_yaml_clean.py <input.yaml> <output.yaml>")
+        sys.exit(1)
+
+    main(sys.argv[1], sys.argv[2])
