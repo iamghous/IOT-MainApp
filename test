@@ -1,58 +1,31 @@
-// Read from env so you don’t bake secrets into the image
-val nexusBase = System.getenv("NEXUS_BASE_URL") ?: "https://nexus.example.com"
-val mavenGroup = System.getenv("NEXUS_MAVEN_GROUP") ?: "$nexusBase/repository/maven-group/"
-val googleProxy = System.getenv("NEXUS_GOOGLE") ?: "$nexusBase/repository/google/"
-val pluginProxy = System.getenv("NEXUS_GRADLE_PLUGINS") ?: "$nexusBase/repository/gradle-plugins/"
+// Single Nexus group repo for everything
+val nexusRepo = System.getenv("NEXUS_MAVEN_GROUP")
+    ?: "https://nexus.yourcompany.com/repository/maven-group/"
 
-val nxUser = System.getenv("NEXUS_USERNAME")
-val nxPass = System.getenv("NEXUS_PASSWORD")
-
-fun org.gradle.api.artifacts.dsl.RepositoryHandler.nexus(url: String) {
-    maven {
-        setUrl(url)
-        if (!nxUser.isNullOrBlank() && !nxPass.isNullOrBlank()) {
-            credentials {
-                username = nxUser
-                password = nxPass
-            }
-        }
-        metadataSources { mavenPom(); artifact() }
-    }
-}
-
-// Apply to every project’s repositories
+// Use Nexus for all dependencies
 allprojects {
     repositories {
         clear()
-        nexus(mavenGroup)
-        nexus(googleProxy)       // if you proxy Google separately
+        maven { setUrl(nexusRepo) }
     }
 }
 
-// Force plugin resolution (affects settings.gradle pluginManagement)
+// Use Nexus for Gradle plugins too
 gradle.settingsEvaluated {
     pluginManagement {
         repositories {
             clear()
-            maven {
-                setUrl(pluginProxy)
-                if (!nxUser.isNullOrBlank() && !nxPass.isNullOrBlank()) {
-                    credentials {
-                        username = nxUser
-                        password = nxPass
-                    }
-                }
-            }
+            maven { setUrl(nexusRepo) }
         }
     }
 }
 
-// Optionally block any non-Nexus repos that a project tries to add
+// (Optional) Block direct internet repos
 gradle.beforeProject {
     repositories.whenObjectAdded {
         if (this is org.gradle.api.artifacts.repositories.MavenArtifactRepository &&
-            !url.toString().startsWith(nexusBase)) {
-            throw org.gradle.api.GradleException("External repositories are blocked. Use Nexus ($nexusBase).")
+            !url.toString().startsWith(nexusRepo)) {
+            throw org.gradle.api.GradleException("External repos are blocked. Use Nexus: $nexusRepo")
         }
     }
 }
