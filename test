@@ -1,27 +1,58 @@
-import json
-import sys
+// Read from env so you don’t bake secrets into the image
+val nexusBase = System.getenv("NEXUS_BASE_URL") ?: "https://nexus.example.com"
+val mavenGroup = System.getenv("NEXUS_MAVEN_GROUP") ?: "$nexusBase/repository/maven-group/"
+val googleProxy = System.getenv("NEXUS_GOOGLE") ?: "$nexusBase/repository/google/"
+val pluginProxy = System.getenv("NEXUS_GRADLE_PLUGINS") ?: "$nexusBase/repository/gradle-plugins/"
 
-def sort_json_recursively(obj):
-    if isinstance(obj, dict):
-        return {k: sort_json_recursively(obj[k]) for k in sorted(obj)}
-    elif isinstance(obj, list):
-        return [sort_json_recursively(item) for item in obj]
-    else:
-        return obj
+val nxUser = System.getenv("NEXUS_USERNAME")
+val nxPass = System.getenv("NEXUS_PASSWORD")
 
-def main(input_file, output_file):
-    with open(input_file, 'r') as f:
-        data = json.load(f)
+fun org.gradle.api.artifacts.dsl.RepositoryHandler.nexus(url: String) {
+    maven {
+        setUrl(url)
+        if (!nxUser.isNullOrBlank() && !nxPass.isNullOrBlank()) {
+            credentials {
+                username = nxUser
+                password = nxPass
+            }
+        }
+        metadataSources { mavenPom(); artifact() }
+    }
+}
 
-    sorted_data = sort_json_recursively(data)
+// Apply to every project’s repositories
+allprojects {
+    repositories {
+        clear()
+        nexus(mavenGroup)
+        nexus(googleProxy)       // if you proxy Google separately
+    }
+}
 
-    with open(output_file, 'w') as f:
-        json.dump(sorted_data, f, indent=2)
+// Force plugin resolution (affects settings.gradle pluginManagement)
+gradle.settingsEvaluated {
+    pluginManagement {
+        repositories {
+            clear()
+            maven {
+                setUrl(pluginProxy)
+                if (!nxUser.isNullOrBlank() && !nxPass.isNullOrBlank()) {
+                    credentials {
+                        username = nxUser
+                        password = nxPass
+                    }
+                }
+            }
+        }
+    }
+}
 
-    print(f"✅ Sorted JSON-style YAML written to: {output_file}")
-
-if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("Usage: python sort_yaml_no_pyyaml.py <input.yaml> <output.yaml>")
-        sys.exit(1)
-    main(sys.argv[1], sys.argv[2])
+// Optionally block any non-Nexus repos that a project tries to add
+gradle.beforeProject {
+    repositories.whenObjectAdded {
+        if (this is org.gradle.api.artifacts.repositories.MavenArtifactRepository &&
+            !url.toString().startsWith(nexusBase)) {
+            throw org.gradle.api.GradleException("External repositories are blocked. Use Nexus ($nexusBase).")
+        }
+    }
+}
