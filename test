@@ -1,31 +1,15 @@
-// Single Nexus group repo for everything
-val nexusRepo = System.getenv("NEXUS_MAVEN_GROUP")
-    ?: "https://nexus.yourcompany.com/repository/maven-group/"
+ENV ANDROID_HOME=/opt/android-sdk
+ENV PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
 
-// Use Nexus for all dependencies
-allprojects {
-    repositories {
-        clear()
-        maven { setUrl(nexusRepo) }
-    }
-}
-
-// Use Nexus for Gradle plugins too
-gradle.settingsEvaluated {
-    pluginManagement {
-        repositories {
-            clear()
-            maven { setUrl(nexusRepo) }
-        }
-    }
-}
-
-// (Optional) Block direct internet repos
-gradle.beforeProject {
-    repositories.whenObjectAdded {
-        if (this is org.gradle.api.artifacts.repositories.MavenArtifactRepository &&
-            !url.toString().startsWith(nexusRepo)) {
-            throw org.gradle.api.GradleException("External repos are blocked. Use Nexus: $nexusRepo")
-        }
-    }
-}
+# Install Android command-line tools + the versions you need
+RUN mkdir -p $ANDROID_HOME/cmdline-tools \
+ && curl -fsSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o /tmp/cmdtools.zip \
+ && unzip -q /tmp/cmdtools.zip -d $ANDROID_HOME/cmdline-tools \
+ && mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest \
+ && rm /tmp/cmdtools.zip \
+ && yes | sdkmanager --licenses \
+ && sdkmanager "platform-tools" \
+               "build-tools;29.0.3" \
+               "build-tools;30.0.3" \
+               "platforms;android-29" \
+               "platforms;android-30"
